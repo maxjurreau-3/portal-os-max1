@@ -1,11 +1,10 @@
-// vite.config.ts
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
 export default defineConfig({
+  root: ".",            // IMPORTANT
+  publicDir: "public",  // IMPORTANT
   plugins: [react()],
-  root: ".",           // <— IMPORTANT
-  publicDir: "public", // <— IMPORTANT
   build: {
     outDir: "dist"
   }
