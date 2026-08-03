@@ -2,7 +2,7 @@
 
 import React from "react";
 import { createRoot } from "react-dom/client";
-import { AppV4 } from "./AppV4";
+import { AppV6 } from "./AppV6";
 
 const container = document.getElementById("root");
 
@@ -11,4 +11,4 @@ if (!container) {
 }
 
 const root = createRoot(container);
-root.render(<AppV4 />);
+root.render(<AppV6 />);
