@@ -1,12 +1,18 @@
 // src/routing/v4.ts
 
 import type { KernelV4Config } from "../kernel/v4";
+import type { KernelV5 } from "../kernel/v5";
 import type { IdentityModule } from "../identity/v4";
 import type { GovernanceModule } from "../governance/v4";
 import { DynamicFlows } from "./flows";
-import type { KernelV5 } from "../kernel/v5";
+import { createRegionRoute } from "./region";
 
-export type RouteKind = "dashboard" | "sim" | "governance" | "substrate" | "region";
+export type RouteKind =
+  | "dashboard"
+  | "sim"
+  | "governance"
+  | "substrate"
+  | "region";
 
 export interface RouteV4 {
   id: string;
@@ -23,17 +29,26 @@ export interface RoutingModule {
 }
 
 export async function initRoutingModule(
-  _config: KernelV4Config | KernelV5,
+  config: KernelV4Config | KernelV5,
   identity: IdentityModule,
   governance: GovernanceModule
 ): Promise<RoutingModule> {
-  const routes: RouteV4[] = [
+  const baseRoutes: RouteV4[] = [
     { id: "home", kind: "dashboard", path: "/", label: "Home" },
     { id: "sim", kind: "sim", path: "/sim", label: "SIM" },
     { id: "governance", kind: "governance", path: "/governance", label: "Governance" },
-    { id: "substrate", kind: "substrate", path: "/substrate", label: "Substrate" },
-    { id: "region", kind: "region", path: "/region", label: "Region View" }
+    { id: "substrate", kind: "substrate", path: "/substrate", label: "Substrate" }
   ];
+
+  const regionRoutes: RouteV4[] =
+    "regions" in config
+      ? config.regions.list().map(r => ({
+          ...createRegionRoute(r.id),
+          kind: "region"
+        }))
+      : [];
+
+  const routes = [...baseRoutes, ...regionRoutes];
 
   let current = routes[0];
 
@@ -52,10 +67,11 @@ export async function initRoutingModule(
     evaluateFlows(regionId?: string) {
       const id = identity.get();
       const gov = null; // governance decision injected at runtime
+
       const region =
-        (("regions" in _config) && regionId
-          ? _config.regions.list().find(r => r.id === regionId)
-          : null) || null;
+        "regions" in config && regionId
+          ? config.regions.list().find(r => r.id === regionId) ?? null
+          : null;
 
       for (const flow of DynamicFlows) {
         if (current.id === flow.from && flow.condition.check(id, gov, region)) {
