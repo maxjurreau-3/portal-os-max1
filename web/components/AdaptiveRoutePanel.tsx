@@ -1,5 +1,3 @@
-// web/components/AdaptiveRoutePanel.tsx
-
 import React from "react";
 import type { RouteV4 } from "../../src/routing/v4";
 
