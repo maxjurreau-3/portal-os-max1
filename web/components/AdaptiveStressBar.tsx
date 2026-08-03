@@ -1,5 +1,3 @@
-// web/components/AdaptiveStressBar.tsx
-
 import React from "react";
 
 interface Props {
