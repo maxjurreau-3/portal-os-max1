@@ -1,22 +1,21 @@
 // src/substrate/v4.ts
 
-import { MetricRegistry } from "./metrics";
-import type { PlanetaryLayer } from "../kernel/v4";
+import { fuseMetrics } from "./fusion";
+import { ingestMetrics } from "./ingestion";
 
 export interface PlanetaryMetric {
   id: string;
-  layer: PlanetaryLayer;
+  layer: string;
   region: string;
-  value: number;
   unit: string;
   timestamp: Date;
+  value: number;
 }
 
 export interface SubstrateModule {
   getMetrics(): Promise<PlanetaryMetric[]>;
-  getMetricById(id: string): Promise<PlanetaryMetric | null>;
-  addMetric(metric: PlanetaryMetric): void;
-  listDefinitions(): Promise<typeof MetricRegistry>;
+  ingest(packet: { region: string; metrics: PlanetaryMetric[] }): void;
+  fuse(): Promise<ReturnType<typeof fuseMetrics>>;
 }
 
 export async function initSubstrateModule(): Promise<SubstrateModule> {
@@ -26,14 +25,15 @@ export async function initSubstrateModule(): Promise<SubstrateModule> {
     async getMetrics() {
       return metrics;
     },
-    async getMetricById(id: string) {
-      return metrics.find(m => m.id === id) ?? null;
+
+    ingest(packet) {
+      ingestMetrics(packet, {
+        list: () => [{ id: packet.region, name: packet.region, agents: [], metrics }]
+      });
     },
-    addMetric(metric: PlanetaryMetric) {
-      metrics.push(metric);
-    },
-    async listDefinitions() {
-      return MetricRegistry;
+
+    async fuse() {
+      return fuseMetrics(metrics);
     }
   };
 }
