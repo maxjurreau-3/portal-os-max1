@@ -6,6 +6,8 @@ import { initEcosystemRuntime } from "../src/ecosystem/integration";
 import { TrajectoryPanel } from "./components/TrajectoryPanel";
 import { GovernancePanel } from "./components/GovernancePanel";
 import { SubstratePanel } from "./components/SubstratePanel";
+import { RegionPanel } from "./components/RegionPanel";
+import { AgentPanel } from "./components/AgentPanel";
 
 export function AppV5() {
   const [runtime, setRuntime] = useState(null);
@@ -47,6 +49,12 @@ export function AppV5() {
       {current.id === "sim" && <TrajectoryPanel trajectory={trajectory} />}
       {current.id === "governance" && <GovernancePanel decision={decision} />}
       {current.id === "substrate" && <SubstratePanel metrics={metrics} />}
+      {current.id === "dashboard" && (
+        <>
+          <RegionPanel regions={runtime.kernel.regions.list()} />
+          <AgentPanel agents={runtime.ecosystem.state.agents.list()} />
+        </>
+      )}
     </div>
   );
 }
