@@ -32,6 +32,10 @@ export async function initEcosystemRuntime(): Promise<EcosystemRuntime> {
   const substrate = await initSubstrateModule();
   const routing = await initRoutingModule(kernel, identity, governance);
 
+  // region assignment: default global region
+  const globalRegion = kernel.regions.create("global");
+  kernel.regions.addAgent(globalRegion.id, identity.get()!);
+
   return {
     kernel,
     ecosystem,
