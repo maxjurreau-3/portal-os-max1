@@ -1,5 +1,3 @@
-// web/AppV6.tsx
-
 import React, { useState, useEffect } from "react";
 import { initRuntimeV6 } from "../src/runtime/v6";
 
