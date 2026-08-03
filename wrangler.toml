@@ -1,47 +1,10 @@
 name = "portal-os-max1"
 compatibility_date = "2024-10-01"
-
-# ============================================================
-# Cloudflare Pages build configuration
-# ============================================================
-
-# This tells Cloudflare Pages EXACTLY where your Vite build output is.
-# Without this, Pages ignores wrangler.toml and flags your deployment.
 pages_build_output_dir = "dist"
-
-# ============================================================
-# Build command (Pages uses this automatically)
-# ============================================================
 
 [build]
 command = "npm run build"
 
-# ============================================================
-# Functions (optional — you can add Workers later)
-# ============================================================
-
-# If you add Cloudflare Functions, put them here:
-# functions = "./functions"
-
-# ============================================================
-# Vite / React static asset handling
-# ============================================================
-
 [site]
 bucket = "dist"
 entry-point = "."
-
-# ============================================================
-# Node compatibility (for React + Vite)
-# ============================================================
-
-[dev]
-port = 8788
-local_protocol = "http"
-
-# ============================================================
-# Environment variables (optional)
-# ============================================================
-
-[vars]
-PORTAL_OS_VERSION = "v6"
