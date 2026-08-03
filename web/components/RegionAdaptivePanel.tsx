@@ -1,5 +1,3 @@
-// web/components/RegionAdaptivePanel.tsx
-
 import React from "react";
 import type { FusedMetric } from "../../src/substrate/fusion";
 import type { GovernanceV6Decision } from "../../src/governance/v6";
