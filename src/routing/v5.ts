@@ -1,20 +1,20 @@
-// src/routing/v5.ts
+// src/routing/v6.ts
 
 import type { RouteV4 } from "./v4";
-import { createRouteModifiers } from "./modifiers";
+import type { StressRegistry } from "../kernel/stress";
 
-export interface RoutingV5Module {
-  evaluate(
+export interface RoutingV6Module {
+  evaluateAdaptive(
     current: RouteV4,
     routes: RouteV4[],
-    signals: Record<string, number>
+    stress: StressRegistry
   ): RouteV4;
 }
 
-export function initRoutingV5Module(): RoutingV5Module {
+export function initRoutingV6Module(): RoutingV6Module {
   return {
-    evaluate(current, routes, signals) {
-      const modifiers = createRouteModifiers(signals);
+    evaluateAdaptive(current, routes, stress) {
+      const level = stress.getSmoothed();
 
       let best = current;
       let bestScore = 0;
@@ -22,9 +22,9 @@ export function initRoutingV5Module(): RoutingV5Module {
       for (const route of routes) {
         let score = 1;
 
-        for (const mod of modifiers) {
-          score = mod.apply(score, signals);
-        }
+        if (route.kind === "governance") score += level * 0.2;
+        if (route.kind === "substrate") score += level * 0.15;
+        if (route.kind === "region") score += level * 0.1;
 
         if (score > bestScore) {
           bestScore = score;
@@ -36,4 +36,3 @@ export function initRoutingV5Module(): RoutingV5Module {
     }
   };
 }
-
