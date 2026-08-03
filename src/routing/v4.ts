@@ -1,11 +1,11 @@
 // src/routing/v4.ts
 
-import type { KernelV4Config } from "../kernel/v4";
 import type { KernelV5 } from "../kernel/v5";
 import type { IdentityModule } from "../identity/v4";
 import type { GovernanceModule } from "../governance/v4";
+
 import { DynamicFlows } from "./flows";
-import { createRegionRoute } from "./region";
+import { initRoutingV5Module } from "./v5";
 
 export type RouteKind =
   | "dashboard"
@@ -25,30 +25,28 @@ export interface RoutingModule {
   routes: RouteV4[];
   getCurrent(): RouteV4;
   navigate(id: string): void;
-  evaluateFlows(regionId?: string): void;
+  evaluateFlows(regionId?: string, signals?: Record<string, number>): void;
 }
 
 export async function initRoutingModule(
-  config: KernelV4Config | KernelV5,
+  config: KernelV5,
   identity: IdentityModule,
   governance: GovernanceModule
 ): Promise<RoutingModule> {
-  const baseRoutes: RouteV4[] = [
+  const routingV5 = initRoutingV5Module();
+
+  const routes: RouteV4[] = [
     { id: "home", kind: "dashboard", path: "/", label: "Home" },
     { id: "sim", kind: "sim", path: "/sim", label: "SIM" },
     { id: "governance", kind: "governance", path: "/governance", label: "Governance" },
-    { id: "substrate", kind: "substrate", path: "/substrate", label: "Substrate" }
+    { id: "substrate", kind: "substrate", path: "/substrate", label: "Substrate" },
+    ...config.regions.list().map(r => ({
+      id: `region-${r.id}`,
+      kind: "region",
+      path: `/region/${r.id}`,
+      label: `Region: ${r.name}`
+    }))
   ];
-
-  const regionRoutes: RouteV4[] =
-    "regions" in config
-      ? config.regions.list().map(r => ({
-          ...createRegionRoute(r.id),
-          kind: "region"
-        }))
-      : [];
-
-  const routes = [...baseRoutes, ...regionRoutes];
 
   let current = routes[0];
 
@@ -64,12 +62,12 @@ export async function initRoutingModule(
       if (found) current = found;
     },
 
-    evaluateFlows(regionId?: string) {
+    evaluateFlows(regionId, signals = {}) {
       const id = identity.get();
-      const gov = null; // governance decision injected at runtime
+      const gov = null;
 
       const region =
-        "regions" in config && regionId
+        regionId
           ? config.regions.list().find(r => r.id === regionId) ?? null
           : null;
 
@@ -79,6 +77,8 @@ export async function initRoutingModule(
           if (target) current = target;
         }
       }
+
+      current = routingV5.evaluate(current, routes, signals);
     }
   };
 }
