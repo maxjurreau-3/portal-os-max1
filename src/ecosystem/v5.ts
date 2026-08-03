@@ -1,14 +1,17 @@
-// src/ecosystem/v5.ts
+// src/ecosystem/v6.ts
 
 import { createAgentRegistry } from "./agents";
 import { createCollectiveRegistry } from "./collectives";
 import { createInfluenceGraph, addInfluenceEdge } from "../identity/influence";
-import { assignAgentToRegion } from "./distribution";
-import { aggregateGovernance } from "./aggregation";
+
+import { adaptIdentity } from "./adaptation";
+import { propagateKernelInfluence } from "./influence_v6";
 
 import type { IdentityV4 } from "../identity/v4";
 import type { GovernanceDecision } from "../governance/v4";
 import type { RegionRegistry } from "./regions";
+import type { KernelFeedbackPacket } from "../kernel/feedback";
+import type { StressRegistry } from "../kernel/stress";
 
 export interface EcosystemState {
   agents: ReturnType<typeof createAgentRegistry>;
@@ -17,17 +20,17 @@ export interface EcosystemState {
   decisions: GovernanceDecision[];
 }
 
-export interface EcosystemModule {
+export interface EcosystemModuleV6 {
   state: EcosystemState;
-  addAgent(identity: IdentityV4, regions: RegionRegistry): void;
+  addAgent(identity: IdentityV4, regions: RegionRegistry, stress: StressRegistry): void;
   addCollective(name: string): string;
   addMemberToCollective(collectiveId: string, identity: IdentityV4): void;
   addInfluence(from: string, to: string, weight: number): void;
   addDecision(decision: GovernanceDecision): void;
-  aggregate(regions: RegionRegistry): ReturnType<typeof aggregateGovernance>;
+  applyKernelFeedback(packet: KernelFeedbackPacket, stress: StressRegistry): void;
 }
 
-export function initEcosystemModule(): EcosystemModule {
+export function initEcosystemModule(): EcosystemModuleV6 {
   const agents = createAgentRegistry();
   const collectives = createCollectiveRegistry();
   const influence = createInfluenceGraph();
@@ -40,10 +43,10 @@ export function initEcosystemModule(): EcosystemModule {
       decisions: []
     },
 
-    addAgent(identity, regions) {
-      const regionId = assignAgentToRegion(identity, regions);
-      regions.addAgent(regionId, identity);
-      agents.add(identity);
+    addAgent(identity, regions, stress) {
+      const adapted = adaptIdentity(identity, stress);
+      regions.addAgent(regions.list()[0].id, adapted);
+      agents.add(adapted);
     },
 
     addCollective(name) {
@@ -63,8 +66,9 @@ export function initEcosystemModule(): EcosystemModule {
       this.state.decisions.push(decision);
     },
 
-    aggregate(regions) {
-      return aggregateGovernance(this.state.decisions, regions.list());
+    applyKernelFeedback(packet, stress) {
+      stress.add(packet.globalStress);
+      propagateKernelInfluence(this.state.influence, stress);
     }
   };
 }
