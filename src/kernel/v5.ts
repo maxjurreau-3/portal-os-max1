@@ -1,27 +1,46 @@
-// src/kernel/v5.ts
+// src/kernel/v6.ts
 
-import { createRegionRegistry } from "../ecosystem/regions";
+import { createStressRegistry } from "./stress";
+import { createKernelFeedback } from "./feedback";
 
-export interface KernelV5Config {
+export interface KernelV6Config {
   ecosystemMode: boolean;
   enableInfluenceGraphs: boolean;
+  adaptiveMode: boolean;
 }
 
-export interface KernelV5 {
-  config: KernelV5Config;
+export interface KernelV6 {
+  config: KernelV6Config;
   ecosystemId: string;
   createdAt: Date;
-  regions: ReturnType<typeof createRegionRegistry>;
+  stress: ReturnType<typeof createStressRegistry>;
+  applyFeedback(packet: ReturnType<typeof createKernelFeedback>): void;
 }
 
-export function initKernelV5(): KernelV5 {
+export function initKernelV6(): KernelV6 {
+  const stress = createStressRegistry();
+
   return {
     config: {
       ecosystemMode: true,
-      enableInfluenceGraphs: true
+      enableInfluenceGraphs: true,
+      adaptiveMode: true
     },
+
     ecosystemId: crypto.randomUUID(),
     createdAt: new Date(),
-    regions: createRegionRegistry()
+    stress,
+
+    applyFeedback(packet) {
+      stress.add(packet.globalStress);
+
+      if (packet.globalStress > 5) {
+        this.config.adaptiveMode = true;
+      }
+
+      if (packet.globalStress < 2) {
+        this.config.adaptiveMode = false;
+      }
+    }
   };
 }
