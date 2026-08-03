@@ -3,8 +3,12 @@
 import { createAgentRegistry } from "./agents";
 import { createCollectiveRegistry } from "./collectives";
 import { createInfluenceGraph, addInfluenceEdge } from "../identity/influence";
+import { assignAgentToRegion } from "./distribution";
+import { aggregateGovernance } from "./aggregation";
+
 import type { IdentityV4 } from "../identity/v4";
 import type { GovernanceDecision } from "../governance/v4";
+import type { RegionRegistry } from "./regions";
 
 export interface EcosystemState {
   agents: ReturnType<typeof createAgentRegistry>;
@@ -15,11 +19,12 @@ export interface EcosystemState {
 
 export interface EcosystemModule {
   state: EcosystemState;
-  addAgent(identity: IdentityV4): void;
+  addAgent(identity: IdentityV4, regions: RegionRegistry): void;
   addCollective(name: string): string;
   addMemberToCollective(collectiveId: string, identity: IdentityV4): void;
   addInfluence(from: string, to: string, weight: number): void;
   addDecision(decision: GovernanceDecision): void;
+  aggregate(regions: RegionRegistry): ReturnType<typeof aggregateGovernance>;
 }
 
 export function initEcosystemModule(): EcosystemModule {
@@ -35,7 +40,9 @@ export function initEcosystemModule(): EcosystemModule {
       decisions: []
     },
 
-    addAgent(identity) {
+    addAgent(identity, regions) {
+      const regionId = assignAgentToRegion(identity, regions);
+      regions.addAgent(regionId, identity);
       agents.add(identity);
     },
 
@@ -54,6 +61,10 @@ export function initEcosystemModule(): EcosystemModule {
 
     addDecision(decision) {
       this.state.decisions.push(decision);
+    },
+
+    aggregate(regions) {
+      return aggregateGovernance(this.state.decisions, regions.list());
     }
   };
 }
