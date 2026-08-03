@@ -1,13 +1,13 @@
-
 import React from "react";
 import { createRoot } from "react-dom/client";
-import { AppV6 } from "./AppV6";
+import App from "./App";
+import "./styles/portal.css";
 
-const container = document.getElementById("root");
-
-if (!container) {
-  throw new Error("Root container #root not found in index.html");
+const root = document.getElementById("root");
+if (root) {
+  createRoot(root).render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  );
 }
-
-const root = createRoot(container);
-root.render(<AppV6 />);

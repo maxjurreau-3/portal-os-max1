@@ -1,0 +1,29 @@
+/* Minimal styling for Portal‑OS‑Max web stub */
+:root{
+  --bg:#0b1220;
+  --fg:#e6eef8;
+  --muted:#9fb0c8;
+}
+
+body{
+  margin:0;
+  font-family:system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  background:var(--bg);
+  color:var(--fg);
+}
+
+.app-root, .app-v5, .app-v6{
+  padding:24px;
+}
+
+.panels{
+  display:flex;
+  gap:16px;
+}
+
+.panel{
+  background:rgba(255,255,255,0.04);
+  border-radius:8px;
+  padding:12px;
+  min-width:200px;
+}
