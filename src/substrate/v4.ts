@@ -1,39 +1,44 @@
 // src/substrate/v4.ts
 
-import { fuseMetrics } from "./fusion";
-import { ingestMetrics } from "./ingestion";
+import { initSubstrateV6Module } from "./v6";
+import type { PlanetaryMetric } from "./v4";
+import type { StressRegistry } from "../kernel/stress";
 
-export interface PlanetaryMetric {
-  id: string;
-  layer: string;
-  region: string;
-  unit: string;
-  timestamp: Date;
-  value: number;
-}
-
-export interface SubstrateModule {
+export interface SubstrateModuleV4 {
+  ingest(packet: { region: string; metrics: PlanetaryMetric[] }, stress?: StressRegistry): void;
+  fuse(stress?: StressRegistry): Promise<PlanetaryMetric[]>;
   getMetrics(): Promise<PlanetaryMetric[]>;
-  ingest(packet: { region: string; metrics: PlanetaryMetric[] }): void;
-  fuse(): Promise<ReturnType<typeof fuseMetrics>>;
 }
 
-export async function initSubstrateModule(): Promise<SubstrateModule> {
-  const metrics: PlanetaryMetric[] = [];
+export async function initSubstrateModule(): Promise<SubstrateModuleV4> {
+  const v6 = initSubstrateV6Module();
 
   return {
-    async getMetrics() {
-      return metrics;
+    async ingest(packet, stress) {
+      if (stress) {
+        v6.ingestAdaptive(packet.region, packet.metrics, stress);
+      } else {
+        v6.ingestAdaptive(packet.region, packet.metrics, {
+          getSmoothed: () => 0,
+          add: () => {},
+          points: []
+        });
+      }
     },
 
-    ingest(packet) {
-      ingestMetrics(packet, {
-        list: () => [{ id: packet.region, name: packet.region, agents: [], metrics }]
+    async fuse(stress) {
+      if (stress) {
+        return v6.fuseAdaptive(stress);
+      }
+      return v6.fuseAdaptive({
+        getSmoothed: () => 0,
+        add: () => {},
+        points: []
       });
     },
 
-    async fuse() {
-      return fuseMetrics(metrics);
+    async getMetrics() {
+      return v6.getAll();
     }
   };
 }
