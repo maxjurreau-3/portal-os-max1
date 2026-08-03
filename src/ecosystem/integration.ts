@@ -10,18 +10,10 @@ import { initGovernanceModule } from "../governance/v4";
 import { initSubstrateModule } from "../substrate/v4";
 import { initRoutingModule } from "../routing/v4";
 
-export interface EcosystemRuntime {
-  kernel: ReturnType<typeof initKernelV5>;
-  ecosystem: ReturnType<typeof initEcosystemModule>;
-  identity: Awaited<ReturnType<typeof initIdentityModule>>;
-  sim: Awaited<ReturnType<typeof initSimModule>>;
-  tec: Awaited<ReturnType<typeof initTecModule>>;
-  governance: Awaited<ReturnType<typeof initGovernanceModule>>;
-  substrate: Awaited<ReturnType<typeof initSubstrateModule>>;
-  routing: Awaited<ReturnType<typeof initRoutingModule>>;
-}
+import { FeedbackSignals } from "../feedback/signals";
+import { createModifiers } from "../feedback/modifiers";
 
-export async function initEcosystemRuntime(): Promise<EcosystemRuntime> {
+export async function initEcosystemRuntime() {
   const kernel = initKernelV5();
   const ecosystem = initEcosystemModule();
 
@@ -32,9 +24,22 @@ export async function initEcosystemRuntime(): Promise<EcosystemRuntime> {
   const substrate = await initSubstrateModule();
   const routing = await initRoutingModule(kernel, identity, governance);
 
-  // region assignment: default global region
+  // region assignment
   const globalRegion = kernel.regions.create("global");
   kernel.regions.addAgent(globalRegion.id, identity.get()!);
+
+  async function computeFeedback() {
+    const fused = await substrate.fuse();
+
+    const signalValues: Record<string, number> = {};
+    for (const signal of FeedbackSignals) {
+      signalValues[signal.id] = signal.compute(fused);
+    }
+
+    const modifiers = createModifiers(signalValues);
+
+    return { fused, signalValues, modifiers };
+  }
 
   return {
     kernel,
@@ -44,6 +49,7 @@ export async function initEcosystemRuntime(): Promise<EcosystemRuntime> {
     tec,
     governance,
     substrate,
-    routing
+    routing,
+    computeFeedback
   };
 }
