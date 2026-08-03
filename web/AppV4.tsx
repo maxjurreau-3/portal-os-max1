@@ -1,101 +1,58 @@
 // web/AppV4.tsx
 
-import React, { useEffect, useState } from "react";
-import { bootKernelV4, KernelV4Context } from "../src/kernel/v4";
+import React, { useState } from "react";
 
-export const AppV4: React.FC = () => {
-  const [kernel, setKernel] = useState<KernelV4Context | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [simResult, setSimResult] = useState<string | null>(null);
+import { initKernelV4 } from "../src/kernel/v4";
+import { initSubstrateModule } from "../src/substrate/v4";
+import { initSimModule } from "../src/sim/v4";
+import { initTecModule } from "../src/tec/v4";
+import { initGovernanceModule } from "../src/governance/v4";
+import { initIdentityModule } from "../src/identity/v4";
+import { initRoutingModule } from "../src/routing/v4";
 
-  useEffect(() => {
-    (async () => {
-      const k = await bootKernelV4();
-      setKernel(k);
-      setLoading(false);
-    })();
-  }, []);
+import { TrajectoryPanel } from "./components/TrajectoryPanel";
+import { GovernancePanel } from "./components/GovernancePanel";
+import { SubstratePanel } from "./components/SubstratePanel";
 
-  const runScenario = async () => {
-    if (!kernel) return;
-    const result = await kernel.modules.sim.runScenario("energy-transition-2030-2050");
-    const decision = kernel.modules.governance.evaluateSimResult(result);
-    setSimResult(
-      `Scenario: ${result.scenarioId}, OK: ${decision.ok}, Violations: ${decision.violatedPolicies.join(", ") || "none"}`
-    );
-  };
+export function AppV4() {
+  const [kernel] = useState(() => initKernelV4());
+  const [substrate] = useState(() => initSubstrateModule());
+  const [identity] = useState(() => initIdentityModule(kernel));
+  const [sim] = useState(() => initSimModule(kernel));
+  const [tec] = useState(() => initTecModule(kernel));
+  const [governance] = useState(() => initGovernanceModule(kernel));
+  const [routing] = useState(() => initRoutingModule(kernel, identity, governance));
 
-  if (loading || !kernel) {
-    return <div>Booting Portal-OS v4 planetary kernel...</div>;
+  const [trajectory, setTrajectory] = useState([]);
+  const [decision, setDecision] = useState(null);
+  const [metrics, setMetrics] = useState([]);
+
+  async function runScenario() {
+    const result = await sim.runScenario("energy-transition-2030-2050");
+    setTrajectory(result.trajectory);
+
+    const cost = await tec.estimateTrajectoryCost(result.trajectory);
+    const gov = governance.evaluate(result, cost);
+    setDecision(gov);
+
+    const allMetrics = await substrate.getMetrics();
+    setMetrics(allMetrics);
+
+    routing.evaluateFlows();
   }
 
-  const currentRoute = kernel.modules.routing.getCurrent();
+  const current = routing.getCurrent();
 
   return (
-    <div style={{ fontFamily: "system-ui", padding: "16px" }}>
-      <h1>Portal-OS v4 — Planetary Ecosystem Kernel</h1>
-      <p>
-        Environment: <strong>{kernel.config.environment}</strong> | Region:{" "}
-        <strong>{kernel.config.planetary.region}</strong> | Layer:{" "}
-        <strong>{kernel.config.planetary.layer}</strong>
-      </p>
+    <div>
+      <h1>Portal-OS v4</h1>
+      <p>Current Route: {current.label}</p>
 
-      <nav style={{ marginBottom: "16px" }}>
-        {kernel.modules.routing.routes.map(route => (
-          <button
-            key={route.id}
-            onClick={() => kernel.modules.routing.navigate(route.id)}
-            style={{
-              marginRight: "8px",
-              padding: "6px 10px",
-              background: currentRoute.id === route.id ? "#222" : "#eee",
-              color: currentRoute.id === route.id ? "#fff" : "#000",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer"
-            }}
-          >
-            {route.label}
-          </button>
-        ))}
-      </nav>
+      <button onClick={runScenario}>Run Scenario</button>
 
-      <section>
-        {currentRoute.id === "home" && (
-          <div>
-            <h2>Dashboard</h2>
-            <p>Kernel v4 is live on a planetary-aware substrate.</p>
-          </div>
-        )}
-
-        {currentRoute.id === "sim" && (
-          <div>
-            <h2>SIM v4 — Scenarios</h2>
-            <button onClick={runScenario}>Run energy transition scenario</button>
-            {simResult && <p style={{ marginTop: "8px" }}>{simResult}</p>}
-          </div>
-        )}
-
-        {currentRoute.id === "governance" && (
-          <div>
-            <h2>Governance v4 — Policies</h2>
-            <ul>
-              {kernel.modules.governance.policies.map(p => (
-                <li key={p.id}>
-                  <strong>{p.id}</strong>: {p.description} ({p.enabled ? "enabled" : "disabled"})
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {currentRoute.id === "substrate" && (
-          <div>
-            <h2>Substrate v4 — Planetary Metrics</h2>
-            <p>Metrics store is currently empty (no real data wired yet).</p>
-          </div>
-        )}
-      </section>
+      {current.id === "sim" && <TrajectoryPanel trajectory={trajectory} />}
+      {current.id === "governance" && <GovernancePanel decision={decision} />}
+      {current.id === "substrate" && <SubstratePanel metrics={metrics} />}
     </div>
   );
-};
+}
