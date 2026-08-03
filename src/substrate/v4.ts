@@ -1,5 +1,6 @@
 // src/substrate/v4.ts
 
+import { MetricRegistry } from "./metrics";
 import type { PlanetaryLayer } from "../kernel/v4";
 
 export interface PlanetaryMetric {
@@ -15,6 +16,7 @@ export interface SubstrateModule {
   getMetrics(): Promise<PlanetaryMetric[]>;
   getMetricById(id: string): Promise<PlanetaryMetric | null>;
   addMetric(metric: PlanetaryMetric): void;
+  listDefinitions(): Promise<typeof MetricRegistry>;
 }
 
 export async function initSubstrateModule(): Promise<SubstrateModule> {
@@ -29,6 +31,9 @@ export async function initSubstrateModule(): Promise<SubstrateModule> {
     },
     addMetric(metric: PlanetaryMetric) {
       metrics.push(metric);
+    },
+    async listDefinitions() {
+      return MetricRegistry;
     }
   };
 }
