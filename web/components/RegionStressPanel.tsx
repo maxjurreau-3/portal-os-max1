@@ -1,5 +1,3 @@
-// web/components/RegionStressPanel.tsx
-
 import React from "react";
 
 interface Props {
