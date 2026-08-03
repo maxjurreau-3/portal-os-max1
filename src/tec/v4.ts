@@ -47,4 +47,3 @@ export async function initTecModule(_config: KernelV4Config): Promise<TecModule>
     }
   };
 }
-
