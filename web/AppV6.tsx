@@ -5,10 +5,13 @@ import { initRuntimeV6 } from "../src/runtime/v6";
 
 import { AdaptiveStressBar } from "./components/AdaptiveStressBar";
 import { AdaptiveRoutePanel } from "./components/AdaptiveRoutePanel";
+import { RegionStressPanel } from "./components/RegionStressPanel";
+import { RegionAdaptivePanel } from "./components/RegionAdaptivePanel";
 
 export function AppV6() {
   const [runtime, setRuntime] = useState(null);
   const [result, setResult] = useState(null);
+  const [region, setRegion] = useState("global");
 
   useEffect(() => {
     initRuntimeV6().then(setRuntime);
@@ -17,16 +20,31 @@ export function AppV6() {
   if (!runtime) return <div>Loading Portal‑OS v6…</div>;
 
   async function runAdaptive() {
-    const region = "global";
     const output = await runtime.run(region);
     setResult(output);
   }
 
   return (
     <div>
-      <h1>Portal‑OS v6 — Adaptive Ecosystem Mode</h1>
+      <h1>Portal‑OS v6 — Adaptive Multi‑Region Ecosystem</h1>
 
-      <button onClick={runAdaptive}>Run Adaptive Scenario</button>
+      <label>
+        Region:
+        <select
+          value={region}
+          onChange={e => setRegion(e.target.value)}
+          style={{ marginLeft: "0.5rem" }}
+        >
+          <option value="global">Global</option>
+          <option value="north_america">North America</option>
+          <option value="europe">Europe</option>
+          <option value="asia">Asia</option>
+        </select>
+      </label>
+
+      <button onClick={runAdaptive} style={{ marginLeft: "1rem" }}>
+        Run Adaptive Scenario
+      </button>
 
       {result && (
         <>
@@ -38,17 +56,18 @@ export function AppV6() {
             stress={runtime.kernel.stress.getSmoothed()}
           />
 
-          <h3>Adaptive SIM Trajectory</h3>
-          <pre>{JSON.stringify(result.trajectory.slice(0, 3), null, 2)}</pre>
+          <RegionStressPanel
+            region={region}
+            stress={runtime.kernel.stress.getSmoothed()}
+          />
 
-          <h3>Adaptive TEC Cost</h3>
-          <pre>{JSON.stringify(result.cost, null, 2)}</pre>
-
-          <h3>Adaptive Governance Decision</h3>
-          <pre>{JSON.stringify(result.decision, null, 2)}</pre>
-
-          <h3>Fused Substrate Metrics</h3>
-          <pre>{JSON.stringify(result.fused.slice(0, 5), null, 2)}</pre>
+          <RegionAdaptivePanel
+            region={region}
+            fused={result.fused}
+            trajectory={result.trajectory}
+            cost={result.cost}
+            decision={result.decision}
+          />
         </>
       )}
     </div>
