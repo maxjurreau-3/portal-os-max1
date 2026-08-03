@@ -2,39 +2,44 @@
 
 import type { KernelV4Config } from "../kernel/v4";
 import type { SimRunResult } from "../sim/v4";
-
-export interface PolicyV4 {
-  id: string;
-  description: string;
-  enabled: boolean;
-}
+import type { TecCost } from "../tec/v4";
+import { GovernancePolicies } from "./policies";
 
 export interface GovernanceDecision {
   ok: boolean;
   violatedPolicies: string[];
+  reasoning: string[];
 }
 
 export interface GovernanceModule {
-  policies: PolicyV4[];
-  evaluateSimResult(result: SimRunResult): GovernanceDecision;
+  policies: typeof GovernancePolicies;
+  evaluate(sim: SimRunResult, cost: TecCost): GovernanceDecision;
 }
 
 export async function initGovernanceModule(_config: KernelV4Config): Promise<GovernanceModule> {
-  const policies: PolicyV4[] = [
-    {
-      id: "no-catastrophic-boundary-breach",
-      description: "Reject trajectories that breach planetary boundaries catastrophically.",
-      enabled: true
-    }
-  ];
-
   return {
-    policies,
-    evaluateSimResult(result: SimRunResult): GovernanceDecision {
-      const violated = result.invariantViolations;
+    policies: GovernancePolicies,
+
+    evaluate(sim: SimRunResult, cost: TecCost): GovernanceDecision {
+      const violated: string[] = [];
+      const reasoning: string[] = [];
+
+      for (const point of sim.trajectory) {
+        for (const policy of GovernancePolicies) {
+          const ok = policy.check(point.metrics, cost);
+          if (!ok) {
+            violated.push(policy.id);
+            reasoning.push(
+              `Policy '${policy.id}' failed at ${point.time.toISOString()}: ${policy.description}`
+            );
+          }
+        }
+      }
+
       return {
         ok: violated.length === 0,
-        violatedPolicies: violated
+        violatedPolicies: violated,
+        reasoning
       };
     }
   };
