@@ -1,7 +1,8 @@
 // src/sim/v4.ts
 
-import type { PlanetaryMetric } from "../substrate/v4";
 import type { KernelV4Config } from "../kernel/v4";
+import type { PlanetaryMetric } from "../substrate/v4";
+import { generateTrajectory } from "./trajectories";
 
 export interface SimInvariant {
   id: string;
@@ -14,6 +15,7 @@ export interface SimScenario {
   name: string;
   description: string;
   horizonYears: number;
+  region: string;
 }
 
 export interface SimTrajectoryPoint {
@@ -38,7 +40,10 @@ export async function initSimModule(_config: KernelV4Config): Promise<SimModule>
     {
       id: "planetary-boundaries",
       description: "Stay within defined planetary boundaries.",
-      check: (_metrics) => true
+      check: (metrics) => {
+        const co2 = metrics.find(m => m.id === "co2_ppm");
+        return co2 ? co2.value < 600 : true;
+      }
     }
   ];
 
@@ -47,7 +52,8 @@ export async function initSimModule(_config: KernelV4Config): Promise<SimModule>
       id: "energy-transition-2030-2050",
       name: "Global Energy Transition 2030–2050",
       description: "Shift from fossil to renewables under various policy regimes.",
-      horizonYears: 20
+      horizonYears: 20,
+      region: "global"
     }
   ];
 
@@ -56,6 +62,7 @@ export async function initSimModule(_config: KernelV4Config): Promise<SimModule>
     scenarios,
     async runScenario(id: string): Promise<SimRunResult> {
       const scenario = scenarios.find(s => s.id === id);
+
       if (!scenario) {
         return {
           scenarioId: id,
@@ -64,13 +71,25 @@ export async function initSimModule(_config: KernelV4Config): Promise<SimModule>
         };
       }
 
-      const trajectory: SimTrajectoryPoint[] = [];
+      const rawTrajectory = generateTrajectory({
+        years: scenario.horizonYears,
+        region: scenario.region
+      });
+
       const invariantViolations: string[] = [];
+
+      for (const point of rawTrajectory) {
+        for (const inv of invariants) {
+          if (!inv.check(point.metrics)) {
+            invariantViolations.push(inv.id);
+          }
+        }
+      }
 
       return {
         scenarioId: scenario.id,
         invariantViolations,
-        trajectory
+        trajectory: rawTrajectory
       };
     }
   };
