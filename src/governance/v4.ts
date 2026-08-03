@@ -1,9 +1,8 @@
 // src/governance/v4.ts
 
-import type { KernelV4Config } from "../kernel/v4";
-import type { SimRunResult } from "../sim/v4";
-import type { TecCost } from "../tec/v4";
-import { GovernancePolicies } from "./policies";
+import type { KernelV5 } from "../kernel/v5";
+import type { FusedMetric } from "../substrate/fusion";
+import { initGovernanceV5Module } from "./v5";
 
 export interface GovernanceDecision {
   ok: boolean;
@@ -11,35 +10,28 @@ export interface GovernanceDecision {
   reasoning: string[];
 }
 
-export interface GovernanceModule {
-  policies: typeof GovernancePolicies;
-  evaluate(sim: SimRunResult, cost: TecCost): GovernanceDecision;
+export interface GovernanceModuleV4 {
+  evaluate(
+    fused: FusedMetric[],
+    signals?: Record<string, number>,
+    region?: string
+  ): Promise<GovernanceDecision>;
 }
 
-export async function initGovernanceModule(_config: KernelV4Config): Promise<GovernanceModule> {
+export function initGovernanceModule(kernel: KernelV5): GovernanceModuleV4 {
+  const govV5 = initGovernanceV5Module();
+
   return {
-    policies: GovernancePolicies,
-
-    evaluate(sim: SimRunResult, cost: TecCost): GovernanceDecision {
-      const violated: string[] = [];
-      const reasoning: string[] = [];
-
-      for (const point of sim.trajectory) {
-        for (const policy of GovernancePolicies) {
-          const ok = policy.check(point.metrics, cost);
-          if (!ok) {
-            violated.push(policy.id);
-            reasoning.push(
-              `Policy '${policy.id}' failed at ${point.time.toISOString()}: ${policy.description}`
-            );
-          }
-        }
+    async evaluate(fused, signals = {}, region = "global") {
+      if (fused.length > 0) {
+        return govV5.evaluate(fused, signals, region);
       }
 
+      // fallback legacy behavior
       return {
-        ok: violated.length === 0,
-        violatedPolicies: violated,
-        reasoning
+        ok: true,
+        violatedPolicies: [],
+        reasoning: ["Legacy governance mode: no feedback applied."]
       };
     }
   };
