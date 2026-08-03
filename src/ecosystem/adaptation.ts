@@ -25,7 +25,10 @@ export const AdaptationRules: AdaptationRule[] = [
     description: "Stress boosts influence weight of governance actors.",
     apply(identity, stress) {
       if (identity.kind === "institution") {
-        return { ...identity, influenceWeight: (identity.influenceWeight ?? 1) + stress * 0.1 };
+        return {
+          ...identity,
+          influenceWeight: (identity.influenceWeight ?? 1) + stress * 0.1
+        };
       }
       return identity;
     }
