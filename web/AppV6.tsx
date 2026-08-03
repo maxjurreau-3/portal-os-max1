@@ -9,8 +9,8 @@ import { RegionStressPanel } from "./components/RegionStressPanel";
 import { RegionAdaptivePanel } from "./components/RegionAdaptivePanel";
 
 export function AppV6() {
-  const [runtime, setRuntime] = useState(null);
-  const [result, setResult] = useState(null);
+  const [runtime, setRuntime] = useState<any>(null);
+  const [result, setResult] = useState<any>(null);
   const [region, setRegion] = useState("global");
 
   useEffect(() => {
