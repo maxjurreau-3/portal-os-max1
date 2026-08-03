@@ -23,7 +23,7 @@ export interface DynamicFlow {
 
 export const FlowConditions: FlowCondition[] = [
   {
-    id: "governance-ok",
+    id: "region-governance-ok",
     description: "Governance decision must be OK for the current region.",
     check(_identity, governance, region) {
       if (!governance || !region) return true;
@@ -31,14 +31,14 @@ export const FlowConditions: FlowCondition[] = [
     }
   },
   {
-    id: "institution-role",
-    description: "Identity must be an institution to access governance routes.",
+    id: "region-institution-access",
+    description: "Only institutions may access region governance routes.",
     check(identity) {
       return identity ? identity.kind === "institution" : false;
     }
   },
   {
-    id: "region-dashboard",
+    id: "region-dashboard-access",
     description: "Dashboard is always accessible for any region.",
     check() {
       return true;
@@ -48,21 +48,21 @@ export const FlowConditions: FlowCondition[] = [
 
 export const DynamicFlows: DynamicFlow[] = [
   {
-    id: "sim-to-governance",
+    id: "sim-to-governance-region",
     from: "sim",
     to: "governance",
-    condition: FlowConditions.find(c => c.id === "governance-ok")!
+    condition: FlowConditions.find(c => c.id === "region-governance-ok")!
   },
   {
-    id: "dashboard-to-governance",
+    id: "home-to-governance-region",
     from: "home",
     to: "governance",
-    condition: FlowConditions.find(c => c.id === "institution-role")!
+    condition: FlowConditions.find(c => c.id === "region-institution-access")!
   },
   {
-    id: "dashboard-region",
+    id: "home-to-region-dashboard",
     from: "home",
-    to: "dashboard",
-    condition: FlowConditions.find(c => c.id === "region-dashboard")!
+    to: "region",
+    condition: FlowConditions.find(c => c.id === "region-dashboard-access")!
   }
 ];
